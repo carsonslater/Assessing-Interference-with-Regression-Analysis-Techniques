@@ -1,0 +1,37 @@
+
+# Carson Slater - Analysis 3 ----------------------------------------------
+source(here::here("analysis1.R"))
+
+# Notes -------------------------------------------------------------------
+
+
+# Its good to lay out figures and tables make writing (make an outline)
+# fill in the gaps
+
+# Someone (engineer) needs to be able to read the paper, understand, and go do it themselves
+# with some familiarity
+
+# Draw out design decisions
+
+
+# Tables ------------------------------------------------------------------
+
+# Update Table 1 with Adjusted Units and coefficients for other models
+# Remove Table 2, and just cite that we used v-fold CV
+# Table 3: Add metric for Adjusted Units/Linear Case Model Specs on Rows,
+# metrics on columms
+# (Modify) or Take out Table 4, if modify add additional Models
+
+# Plots -------------------------------------------------------------------
+
+# Figure 2 a and b, Polish and with transformed data (axes and labels need work)
+# EXPLAIN VERY EXPLICITLY WHAT IS HAPPENING! ERR ON THE SIDE OF PATRONIZING
+
+# Fig 3 is a system level plot of the process (feel free to cite fig 3 in
+# explanantion of 2 a to 2 b)
+
+# Control surface plot needs to happen
+
+# Make a 2d model fit
+
+
