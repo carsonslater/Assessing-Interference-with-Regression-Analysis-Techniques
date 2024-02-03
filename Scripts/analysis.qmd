@@ -42,6 +42,8 @@ The following code is a consolidation of all the research that went into this pa
 #### Data Preparation
 
 ```{r loading the data}
+save <- FALSE
+
 tuning_data <- read.csv(here::here("Data", "MamdaniTuningData_1-6.csv"),
                          header = TRUE)
 
@@ -87,54 +89,120 @@ noise_aggregate_data$scaled_psd <- noise_aggregate_data$scaled_psd + noise
 
 In this our exploratory data analysis, I observed there is a non-linear relationship between `distance` and the `scaled_psd`.
 
-```{r plots}
+```{r plots, }
+viridis_pal(option = "D")(12)
+
 # No noise
+if (save == TRUE) pdf(file = "Figures/rawdata.pdf", height = 5, width = 7)
 aggregate_data |> 
   ggplot(aes(distance, scaled_psd)) +
-  geom_point(color = "#38598CFF", alpha = 0.03) +
+  geom_point(color = "#433E85FF", alpha = 0.03) +
   labs(title = "Recieved PSD Over Distance with Noise (All Input PSD)",
        caption = "Raw simulated data plotted before any added noise without the distance variable transformed.") +
   xlab(TeX("Distance (m)")) +
   ylab("Recieved PSD (dBW/200 MHz)") +
-  theme(text=element_text(family="Times New Roman", size=16),
+  theme(text=element_text(family="Times New Roman", size=14),
         plot.caption = element_text(hjust=0.5))
+if (save == TRUE) dev.off()
 
  # Jitter (noise) added
+if (save == TRUE) pdf(file = "Figures/noise_rawdata.pdf", height = 5, width = 7)
 noise_aggregate_data |> 
   ggplot(aes(distance, scaled_psd)) +
-  geom_point(color = "#38598CFF", alpha = 0.03) +
+  geom_point(color = "#433E85FF", alpha = 0.03) +
   labs(title = "Recieved PSD Over Distance with Noise (All Input PSD)",
        caption = "Raw simulated data plotted with simulated noise without the distance variable transformed.") +
   xlab("Distance (m)") +
   ylab("Recieved PSD (dBW/200 MHz)") +
-  theme(text=element_text(family="Times New Roman", size=16),
+  theme(text=element_text(family="Times New Roman", size=14),
         plot.caption = element_text(hjust=0.5))
+if (save == TRUE) dev.off()
 
 # No noise + transformed distance
+if (save == TRUE) pdf(file = "Figures/tfdata.pdf", height = 5, width = 7)
 aggregate_data |> 
   ggplot(aes(transform5, scaled_psd)) +
-  geom_point(color = "#38598CFF", alpha = 0.03) +
+  geom_point(color = "#433E85FF", alpha = 0.03) +
   labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)"),
-       "Raw simulated data plotted before any added noise with the Distance variable transformed (see axis).") +
+       caption = "Raw simulated data plotted before any added noise with the Distance variable transformed (see axis).") +
   xlab(TeX("Distance$^{-0.001}$")) +
   ylab("Recieved PSD (dBW/200 MHz)") +
   theme(text=element_text(family="Times New Roman", size=16),
         plot.caption = element_text(hjust=0.5))
-
+if (save == TRUE) dev.off()
 
 # Noise + transformed distance
+if (save == TRUE) pdf(file = "Figures/noise_tfdata.pdf", height = 5, width = 7)
 noise_aggregate_data |> 
-  ggplot(aes(distance, scaled_psd)) +
-  geom_point(color = "#38598CFF", alpha = 0.03) +
-  labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)")) +
+  ggplot(aes(transform5, scaled_psd)) +
+  geom_point(color = "#433E85FF", alpha = 0.03) +
+  labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)"),
+       caption = "Raw simulated data plotted after adding noise and transforming the distiance variable.") +
   xlab(TeX("Distance$^{-0.001}$")) +
-  ylab("Recieved PSD (dBW/200 MHz)")
-
-
+  ylab("Recieved PSD (dBW/200 MHz)") +
+  theme(text=element_text(family="Times New Roman", size=16),
+        plot.caption = element_text(hjust=0.5))
+if (save == TRUE) dev.off()
 ```
 
-## The Model (With Noise)
-```{r m1 training}
+## Modeling
+We create a `parsnip` linear model object.
+```{r}
+lm_mod <-
+  parsnip::linear_reg() |>
+  parsnip::set_engine("lm") |>
+  parsnip::set_mode("regression")
+```
+
+
+#### The Model (Without Noise)
+
+```{r m2 training}
+set.seed(613)
+mod_split <- aggregate_data |> 
+  initial_split(
+    prop = 0.8
+  )
+
+mod_test <- testing(mod_split)
+mod_train <- training(mod_split)
+
+# `tidymodels` Procedure for Fitting Linear Model.
+my_recipe <- recipe(scaled_psd ~ input_psd + transform5, 
+                    data = aggregate_data)
+
+baked_recipe <- bake(prep(my_recipe), new_data = NULL)
+
+lm_wkflow <- workflow() |> 
+  add_model(lm_mod) |> 
+  add_recipe(my_recipe)
+
+# Specifying Model Metrics
+my_metrics <- metric_set(mape, rsq, rmse)
+
+# Fit the model (not with v-fold CV)
+lm_fit <- fit(lm_wkflow, 
+              data = mod_train)
+
+lm_pred_test <- augment(lm_fit, 
+                        new_data = mod_test)
+
+my_metrics(lm_pred_test, 
+           truth = scaled_psd, 
+           estimate = .pred)
+
+# THE MODEL ---------------------------------------------------------------
+lm_fit |> 
+  tidy()
+
+m1 <- lm(scaled_psd ~ input_psd + transform5, 
+         data = mod_train)
+summary(m1)
+```
+
+
+#### The Model (With Noise)
+```{r m2 training}
 # Performing Model Training
 
 set.seed(613)
@@ -143,8 +211,8 @@ noise_mod_split <- noise_aggregate_data |>
     prop = 0.8
   )
 
-noise_mod_test <- testing(mod_split)
-noise_mod_train <- training(mod_split)
+noise_mod_test <- testing(noise_mod_split)
+noise_mod_train <- training(noise_mod_split)
 
 # `tidymodels` Procedure for Fitting Linear Model.
 noise_my_recipe <- recipe(scaled_psd ~ input_psd + transform5, 
@@ -154,19 +222,19 @@ noise_baked_recipe <- bake(prep(my_recipe), new_data = NULL)
 
 noise_lm_wkflow <- workflow() |> 
   add_model(lm_mod) |> 
-  add_recipe(my_recipe)
+  add_recipe(noise_my_recipe)
 
 # Specifying Model Metrics
 noise_my_metrics <- metric_set(mape, rsq, rmse)
 
 # Fit the model (not with v-fold CV)
 noise_lm_fit <- fit(lm_wkflow, 
-              data = mod_train)
+              data = noise_mod_train)
 
-noise_lm_pred_test <- augment(lm_fit, 
-                        new_data = mod_test)
+noise_lm_pred_test <- augment(noise_lm_fit, 
+                        new_data = noise_mod_test)
 
-noise_my_metrics(lm_pred_test, 
+noise_my_metrics(noise_lm_pred_test, 
            truth = scaled_psd, 
            estimate = .pred)
 
@@ -174,8 +242,49 @@ noise_my_metrics(lm_pred_test,
 noise_lm_fit |> 
   tidy()
 
-m1 <- lm(scaled_psd ~ input_psd + transform5, 
+m2 <- lm(scaled_psd ~ input_psd + transform5, 
          data = noise_mod_train)
-summary(m1)
+summary(m2)
+```
+
+## Model Plotting
+
+```{r}
+# no noise
+# predicting on the whole data set
+pred <- augment(lm_fit, new_data = aggregate_data)
+
+# with noise
+# predicting on the whole data set
+noise_pred <- augment(noise_lm_fit, new_data = noise_aggregate_data)
+
+# visualizing the models
+if (save == TRUE) pdf(file = "Figures/pred.pdf", height = 5, width = 7)
+pred |> 
+  filter(input_psd == -55) |> 
+  ggplot(aes(transform5, scaled_psd)) +
+    geom_point(color = "#433E85FF", alpha = 0.5, size = 3) +
+    geom_line(aes(transform5, .pred), color = "#C2DF23FF", lwd = 1) +
+    labs(title = "Regression Model Fit (Transmitted PSD = -55)",
+         caption = "Model fit with training data, (no noise added.") +
+    xlab(TeX("Distance$^{-0.001}$")) +
+    ylab("Recieved PSD (dBW/200 MHz)") +
+    theme(text=element_text(family="Times New Roman", size=16),
+          plot.caption = element_text(hjust=0.5))
+dev.off()
+
+if (save == TRUE) pdf(file = "Figures/noise_pred.pdf", height = 5, width = 7)
+noise_lm_pred_test |> 
+  filter(input_psd == -55) |> 
+  ggplot(aes(transform5, scaled_psd)) +
+    geom_point(color = "#433E85FF", alpha = 0.5, size = 3) +
+    geom_line(aes(transform5, .pred), color = "#C2DF23FF", lwd = 1) +
+    labs(title = "Regression Model Fit (Transmitted PSD = -55)",
+         caption = "Model fit with training data, (noise added).") +
+    xlab(TeX("Distance$^{-0.001}$")) +
+    ylab("Recieved PSD (dBW/200 MHz)") +
+    theme(text=element_text(family="Times New Roman", size=16),
+          plot.caption = element_text(hjust=0.5))
+dev.off()
 ```
 
