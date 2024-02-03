@@ -17,10 +17,10 @@ library("knitr")
 
 # EDA ---------------------------------------------------------------------
 
-tuning_data1 <- read.csv(here::here("MamdaniTuningData_1-5.csv"),
+tuning_data1 <- read.csv(here::here("Data", "MamdaniTuningData_1-5.csv"),
                          header = TRUE)
 
-tuning_data2 <- read.csv(here::here("MamdaniTuningData_1-6.csv"),
+tuning_data2 <- read.csv(here::here("Data", "MamdaniTuningData_1-6.csv"),
                          header = TRUE)
 
 distances <- as.vector(as.matrix(tuning_data1[ ,c("tx1_distance",

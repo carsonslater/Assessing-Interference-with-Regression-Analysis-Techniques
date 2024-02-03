@@ -160,7 +160,7 @@ bnch |>
 
 # So to find the variance, we know the noise density(variance) at room temp is
 # -174 dBm/Hz, and so we can convert to dBW/200MHz by using the following:
-# -174 + 10*log10(200e6) - 30 = -12.86172. Since this is negative we take the 
+# -174 + 10*log10(200e6) - 30 = -12.86172. Since this is negative we take the
 # square root of the absolute value and then we have the standard deviation for
 # the distribution of noise for the outcome of interest.
 

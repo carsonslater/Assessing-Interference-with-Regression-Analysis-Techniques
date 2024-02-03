@@ -1,5 +1,4 @@
 # Carson Slater -----------------------------------------------------------
-# FIS Training Data -------------------------------------------------------
 
 library("tidymodels"); theme_set(theme_bw() + 
                                    theme(panel.border = element_blank(), 
@@ -18,7 +17,7 @@ library("knitr")
 # Data Prep ---------------------------------------------------------------
 
 
-tuning_data <- read.csv(here::here("MamdaniTuningData_1-6.csv"),
+tuning_data <- read.csv(here::here("Data", "MamdaniTuningData_1-6.csv"),
                          header = TRUE)
 
 distance <- as.vector(as.matrix(tuning_data[ ,c("tx1_distance",

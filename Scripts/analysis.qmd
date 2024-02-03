@@ -12,26 +12,35 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r packages}
+```{r packages and setup}
 #| include: false
 #| echo: false
-library("tidymodels"); theme_set(theme_bw() + 
-                                   theme(panel.border = element_blank(), 
-                                         panel.grid.major = element_blank(),
-                                         panel.grid.minor = element_blank(), 
-                                         axis.line = element_line(colour = "black")))
+
+library("viridis")
+library("tidymodels") 
+theme_set(theme_bw() + 
+            theme(panel.border = element_blank(), 
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(), 
+                  axis.line = element_line(colour = "black")))
+options(ggplot2.continuous.colour="viridis")
+library("extrafont")
+font_import()
+loadfonts(device="pdf")
+# fonts()
 library("parsnip")
 library("recipes")
 library("knitr")
+library("patchwork")
 library("latex2exp")
 ```
-
 
 ## Data Preparation and EDA
 
 The following code is a consolidation of all the research that went into this paper.
 
 #### Data Preparation
+
 ```{r loading the data}
 tuning_data <- read.csv(here::here("Data", "MamdaniTuningData_1-6.csv"),
                          header = TRUE)
@@ -54,12 +63,10 @@ aggregate_data <- cbind.data.frame(rep(tuning_data$rad_loc_idx, 3),
                                     scaled_psd)
 ```
 
-We found it difficult to find real-world data for this kind of problem, so we have simulated data. To make our model robust, we decided to simulate random noise in our outcome of interest, `scaled_psd` (recieved power spectral density). We opted to assume a gaussian probability distribution with a mean of zero and a priori illicited variance. So to find the variance, we know the noise density (variance) at room temp is
--174 dBm/Hz. We can convert to dBW/200MHz by using the following formula
-$$\sqrt{|-174 + 10\log_{10}(2\times10^8) - 30|} = 10.99953$$. We take the square root of the absolute value and then we have the standard deviation to parameterize the distribution of noise for the outcome of interest. So the noise is $\mathcal{N}(0, 10.99)$.
+We found it difficult to find real-world data for this kind of problem, so we have simulated data. To make our model robust, we decided to simulate random noise in our outcome of interest, `scaled_psd` (recieved power spectral density). We opted to assume a gaussian probability distribution with a mean of zero and a priori illicited variance. So to find the variance, we know the noise density (variance) at room temp is -174 dBm/Hz. We can convert to dBW/200MHz by using the following formula $$\sqrt{|-174 + 10\log_{10}(2\times10^8) - 30|} = 10.99953$$. We take the square root of the absolute value and then we have the standard deviation to parameterize the distribution of noise for the outcome of interest. So the noise is $\mathcal{N}(0, 10.99)$.
 
-```{r}
-# generating potential transformations for the `distance` variable
+```{r data prep}
+# generating potential transformation for the `distance` variable
 # see analyis2.R for other transformations we tried
 aggregate_data <- aggregate_data |> 
   mutate(transform5 = distance^(-1/1000))
@@ -71,45 +78,104 @@ sigma <- sqrt(abs(-174 + 10*log10(200e6) - 30))
 
 noise <- rnorm(nrow(aggregate_data), 0, sigma)
 
-aggregate_data_noise <- aggregate_data
+noise_aggregate_data <- aggregate_data
 
-aggregate_data_noise$scaled_psd <- aggregate_data_noise$scaled_psd + noise
+noise_aggregate_data$scaled_psd <- noise_aggregate_data$scaled_psd + noise
 ```
 
 #### Data Visualization
+
 In this our exploratory data analysis, I observed there is a non-linear relationship between `distance` and the `scaled_psd`.
 
-```{r}
-# no noise
+```{r plots}
+# No noise
 aggregate_data |> 
   ggplot(aes(distance, scaled_psd)) +
-  geom_point(alpha = 0.03) +
-  labs(title = "Recieved PSD Over Distance with Noise (All Input PSD)") +
-  xlab(TeX("Distance$^{-0.001}$")) +
-  ylab("Recieved PSD")
+  geom_point(color = "#38598CFF", alpha = 0.03) +
+  labs(title = "Recieved PSD Over Distance with Noise (All Input PSD)",
+       caption = "Raw simulated data plotted before any added noise without the distance variable transformed.") +
+  xlab(TeX("Distance (m)")) +
+  ylab("Recieved PSD (dBW/200 MHz)") +
+  theme(text=element_text(family="Times New Roman", size=16),
+        plot.caption = element_text(hjust=0.5))
 
-# jitter (noise) added
-aggregate_data_noise |> 
+ # Jitter (noise) added
+noise_aggregate_data |> 
   ggplot(aes(distance, scaled_psd)) +
-  geom_point(alpha = 0.03) +
-  labs(title = "Recieved PSD Over Distance with Noise (All Input PSD)") +
-  xlab("Distance") +
-  ylab("Recieved PSD")
+  geom_point(color = "#38598CFF", alpha = 0.03) +
+  labs(title = "Recieved PSD Over Distance with Noise (All Input PSD)",
+       caption = "Raw simulated data plotted with simulated noise without the distance variable transformed.") +
+  xlab("Distance (m)") +
+  ylab("Recieved PSD (dBW/200 MHz)") +
+  theme(text=element_text(family="Times New Roman", size=16),
+        plot.caption = element_text(hjust=0.5))
 
-# no noise + transformed distance
+# No noise + transformed distance
 aggregate_data |> 
   ggplot(aes(transform5, scaled_psd)) +
-  geom_point(alpha = 0.03) +
-  labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)")) +
+  geom_point(color = "#38598CFF", alpha = 0.03) +
+  labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)"),
+       "Raw simulated data plotted before any added noise with the Distance variable transformed (see axis).") +
   xlab(TeX("Distance$^{-0.001}$")) +
-  ylab("Recieved PSD")
+  ylab("Recieved PSD (dBW/200 MHz)") +
+  theme(text=element_text(family="Times New Roman", size=16),
+        plot.caption = element_text(hjust=0.5))
 
-# noise + transformed distance
-aggregate_data_noise |> 
+
+# Noise + transformed distance
+noise_aggregate_data |> 
   ggplot(aes(distance, scaled_psd)) +
-  geom_point(alpha = 0.03) +
+  geom_point(color = "#38598CFF", alpha = 0.03) +
   labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)")) +
   xlab(TeX("Distance$^{-0.001}$")) +
-  ylab("Recieved PSD")
+  ylab("Recieved PSD (dBW/200 MHz)")
+
+
+```
+
+## The Model (With Noise)
+```{r m1 training}
+# Performing Model Training
+
+set.seed(613)
+noise_mod_split <- noise_aggregate_data |> 
+  initial_split(
+    prop = 0.8
+  )
+
+noise_mod_test <- testing(mod_split)
+noise_mod_train <- training(mod_split)
+
+# `tidymodels` Procedure for Fitting Linear Model.
+noise_my_recipe <- recipe(scaled_psd ~ input_psd + transform5, 
+                    data = aggregate_data)
+
+noise_baked_recipe <- bake(prep(my_recipe), new_data = NULL)
+
+noise_lm_wkflow <- workflow() |> 
+  add_model(lm_mod) |> 
+  add_recipe(my_recipe)
+
+# Specifying Model Metrics
+noise_my_metrics <- metric_set(mape, rsq, rmse)
+
+# Fit the model (not with v-fold CV)
+noise_lm_fit <- fit(lm_wkflow, 
+              data = mod_train)
+
+noise_lm_pred_test <- augment(lm_fit, 
+                        new_data = mod_test)
+
+noise_my_metrics(lm_pred_test, 
+           truth = scaled_psd, 
+           estimate = .pred)
+
+# THE MODEL
+noise_lm_fit |> 
+  tidy()
+
+m1 <- lm(scaled_psd ~ input_psd + transform5, 
+         data = noise_mod_train)
+summary(m1)
 ```
 
