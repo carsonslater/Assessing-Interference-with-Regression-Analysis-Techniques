@@ -12,7 +12,7 @@ source(here::here("analysis1.R"))
 # with some familiarity
 
 # Draw out design decisions
-
+# Explain prediction intervals
 
 # Tables ------------------------------------------------------------------
 # Update Table 1 with Adjusted Units and coefficients for other models
@@ -24,7 +24,7 @@ source(here::here("analysis1.R"))
 
 # Plots -------------------------------------------------------------------
 
-# plots 2 a and b Plosih axes and labels and Change color to viridis
+# plots 2 a and b polish axes and labels and Change color to viridis
 # explain very detailed what is happening in plots 2a and b
 
 # plots 3 will be system level diagram 

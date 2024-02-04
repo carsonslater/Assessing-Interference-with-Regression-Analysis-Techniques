@@ -5,7 +5,7 @@
 
 # Sourcing Old File for Update Environment
 
-source(here::here("analysis1.R"))
+source(here::here("Scripts", "analysis1.R"))
 library("plotly")
 
 # Data Transformation -----------------------------------------------------
@@ -337,8 +337,8 @@ my_metrics(lm_pred_test2,
            estimate = .pred)
 
 # THE MODEL ---------------------------------------------------------------
-# lm_fit |> 
-#   tidy()
+lm_fit2 |>
+  tidy()
 
 
 # Plotly ------------------------------------------------------------------
