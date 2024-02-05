@@ -150,7 +150,18 @@ bnch |>
   kableExtra::kable_styling(font_size = 10,
                             latex_options = "HOLD_position") 
 
+bnch_lm <- bench::mark(lm(scaled_psd ~ input_psd + transform5, 
+                       data = aggregate_data),
+                    check = FALSE)
 
+bnch_lm |> 
+  select(expression, min, 
+         median, `itr/sec`, 
+         mem_alloc) |> 
+  knitr::kable(digits = 3, 
+               col.names = columns) |> 
+  kableExtra::kable_styling(font_size = 10,
+                            latex_options = "HOLD_position") 
 
 # -------------------------------------------------------------------------
 # Trying Αnalysis with Noise ----------------------------------------------
