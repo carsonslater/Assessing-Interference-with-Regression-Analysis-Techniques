@@ -224,6 +224,7 @@ collect_metrics(lm_folds_fitted, summarize = T) |>
 ```
 
 #### Benchmarking
+
 ```{r}
 # Benchmark ---------------------------------------------------------------
 columns <- c("Expression",
@@ -244,7 +245,6 @@ bnch |>
   kableExtra::kable_styling(font_size = 10,
                             latex_options = "HOLD_position") 
 ```
-
 
 #### The Model (With Noise)
 
@@ -316,6 +316,7 @@ collect_metrics(noise_lm_folds_fitted, summarize = T) |>
 ```
 
 #### Benchmarking
+
 ```{r}
 # Benchmark ---------------------------------------------------------------
 columns <- c("Expression",
@@ -336,7 +337,6 @@ bnch |>
   kableExtra::kable_styling(font_size = 10,
                             latex_options = "HOLD_position") 
 ```
-
 
 ## Model Plotting
 
@@ -408,4 +408,16 @@ noise_pred |>
     theme(text=element_text(family="Times New Roman", size=14),
           plot.caption = element_text(hjust=0.5))
 if (save == TRUE) dev.off()
+```
+
+
+### Model Diagnostics
+```{r}
+#| eval: FALSE
+ri <- rstandard(m1)
+
+qqnorm(ri); qqline(ri)
+
+plot(predict(m1, newdata = mod_train), ri, pch = 19, col = alpha(1, 0.05))
+abline(h = 0, col = "red")
 ```

@@ -150,18 +150,20 @@ bnch |>
   kableExtra::kable_styling(font_size = 10,
                             latex_options = "HOLD_position") 
 
-bnch_lm <- bench::mark(lm(scaled_psd ~ input_psd + transform5, 
-                       data = aggregate_data),
-                    check = FALSE)
-
-bnch_lm |> 
-  select(expression, min, 
-         median, `itr/sec`, 
-         mem_alloc) |> 
-  knitr::kable(digits = 3, 
-               col.names = columns) |> 
-  kableExtra::kable_styling(font_size = 10,
-                            latex_options = "HOLD_position") 
+# modified these lines for presentation
+# bnch_lm <- bench::mark(
+#   "no noise" = lm(scaled_psd ~ input_psd + transform5, data = aggregate_data),
+#   "noise" = lm(scaled_psd ~ input_psd + transform5, data = aggregate_data_noise),
+#                     check = FALSE)
+# 
+# bnch_lm |> 
+#   select(expression, min, 
+#          median, `itr/sec`, 
+#          mem_alloc) |> 
+#   knitr::kable(digits = 3, 
+#                col.names = columns) |> 
+#   kableExtra::kable_styling(font_size = 10,
+#                             latex_options = "HOLD_position") 
 
 # -------------------------------------------------------------------------
 # Trying Αnalysis with Noise ----------------------------------------------
@@ -179,8 +181,10 @@ set.seed(613)
 
 noise <- rnorm(71070, 0, 10.99953)
 
-aggregate_data$scaled_psd <- aggregate_data$scaled_psd + noise
+# aggregate_data_noise <- aggregate_data |> 
+#   mutate(scaled_psd = scaled_psd + noise)
 
+aggregate_data$scaled_psd <- aggregate_data$scaled_psd + noise
 
 aggregate_data |> filter(input_psd == -55) |> 
   ggplot(aes(distance, scaled_psd)) +
@@ -207,7 +211,7 @@ mod_split <- aggregate_data |>
   )
 
 mod_test <- testing(mod_split)
-mod_train <- training(mod_split)
+mod_train_noise <- training(mod_split)
 
 # `tidymodels` Procedure for Fitting Linear Model.
 my_recipe <- recipe(scaled_psd ~ input_psd + transform5, 
