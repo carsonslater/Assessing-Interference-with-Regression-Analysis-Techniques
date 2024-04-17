@@ -1,0 +1,84 @@
+---
+title: "Refitting the Model on New Data"
+format: pdf
+editor: visual
+---
+
+```{r setup}
+#| echo: false
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#"
+)
+```
+
+```{r packages and setup}
+#| include: false
+#| echo: false
+
+library("viridis")
+library("tidymodels") 
+theme_set(theme_bw() + 
+            theme(panel.border = element_blank(), 
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(), 
+                  axis.line = element_line(colour = "black")))
+options(ggplot2.continuous.colour="viridis")
+library("extrafont")
+library("tidypredict")
+library("recipes")
+library("knitr")
+library("patchwork")
+library("latex2exp")
+```
+
+### Data Preparation
+
+The following code is the result of triage for what we thought was important for reproducibility of all the research that went into this paper. Other R scripts such as `analysis0.R`, `analysis1.R`, `analysis2.R` contain the messy, yet authentic code that was the outpouring of this modeling process. When someone is attempting to discover something they have quick ideas they don’t wanna forget so they just keep coding them up and their organization takes a backseat to discovery and inquiry.
+
+### Data Preparation
+
+```{r loading the data}
+save <- FALSE
+
+tuning_data <- read.csv(here::here("Data", "Interpolated_CompleteSet_May11_FlightData.csv"),
+                         header = TRUE)
+
+colnames(tuning_data) <- c("input_psd", "distance", "measured_psd")
+
+tuning_data <- tuning_data |> mutate("transformed_distance" = distance^(-1/1000))
+```
+
+### Visualize Training Data
+```{r visualize}
+tuning_data |> 
+  ggplot(aes(transformed_distance, measured_psd)) +
+  geom_point(color = "#433E85FF", alpha = 0.03) +
+  labs(title = TeX("Recieved PSD Over Distance$^{-0.001}$ (All Input PSD)"),
+       caption = "Data plotted before any added noise with the Distance variable transformed.") +
+  xlab(TeX("Distance$^{-0.001}$")) +
+  ylab("Recieved PSD (dBW/200 MHz)") +
+  theme(text=element_text(family="Times New Roman", size=14),
+        plot.caption = element_text(hjust=0.5))
+```
+
+### Train/Test Split
+```{r }
+set.seed(613)
+mod_split <- tuning_data |> 
+  initial_split(
+    prop = 0.8
+  )
+
+mod_test <- testing(mod_split)
+mod_train <- training(mod_split)
+```
+
+### Model Fitting
+```{r model fitting}
+#| eval: true
+m1 <- lm(measured_psd ~ input_psd + transformed_distance, 
+         data = mod_train)
+
+coef(m1) |> knitr::kable(col.names = c("Variable", "Coefficient Value"))
+```
+

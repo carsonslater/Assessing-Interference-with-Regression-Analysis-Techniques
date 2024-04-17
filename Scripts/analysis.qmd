@@ -1,5 +1,5 @@
 ---
-title: "Predicting Aggregate Interference"
+title: "Predicting Pairwise Interference"
 author: "Carson Slater"
 format: pdf
 editor: visual
@@ -410,8 +410,8 @@ noise_pred |>
 if (save == TRUE) dev.off()
 ```
 
-
 ### Model Diagnostics
+
 ```{r}
 #| eval: FALSE
 ri <- rstandard(m1)
