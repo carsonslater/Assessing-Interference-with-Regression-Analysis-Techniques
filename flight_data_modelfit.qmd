@@ -82,3 +82,19 @@ m1 <- lm(measured_psd ~ input_psd + transformed_distance,
 coef(m1) |> knitr::kable(col.names = c("Variable", "Coefficient Value"))
 ```
 
+### Model Evaluation
+```{r model metrics}
+pred <- predict(m1, newdata = mod_test)
+
+mod_test <- cbind(mod_test, pred)
+
+# rmse is 0.03657296
+mod_rmse <- sqrt(mean((mod_test$measured_psd - mod_test$pred)^2))
+
+# mape is 0.01076367
+mod_mape <- mean(abs((mod_test$measured_psd - mod_test$pred) / mod_test$measured_psd)) * 100
+
+# rsq is 0.9999801
+summary(m1)$r.squared
+```
+
