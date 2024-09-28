@@ -3,9 +3,7 @@
 
 [Jonathan Swindell*](https://github.com/JonathanSwindell/JonathanSwindell), [Carson Slater](https://github.com/carsonslater), Samuel Hussey, Charles Baylis, Robert J. Marks II
 
-<center>
-![](/agg_interference_diagram.png)
-</center>
+<img src="agg_interference_diagram.png" alt="Device placement in a network area of approximately 1 km," style="width:450px;height:225px;">
 
 ### Overview
 
@@ -28,3 +26,7 @@ After exploring some different models, we found one of the simplest, yet most ac
 \hat{R}_{PSD} = \hat{\beta}_0 + \hat{\beta}_1 T_{PSD} + \hat{\beta}_2 f(D).
 ```
 Where the $`R_{PSD}`$ and $`T_{PSD}`$ are the recieved and transmitted power spectral density, and $`f(D)`$ is a transformation of the distance from the transmitter to the reciever. Using this simple, trivial yet powerful model, we were able to obtain performance metrics that are comparable to other machine learning models.
+***
+### Analysis
+
+Below is a table of important files that are required to replicated and tinker with our anaylsis. Most of the analysis was done in R/RStudio, using a select set of packages in the [`tidymodels`](https://www.tidymodels.org) metapackage. Additionally, surface plots were made in MatLab.
