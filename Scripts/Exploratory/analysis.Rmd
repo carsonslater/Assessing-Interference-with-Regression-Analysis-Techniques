@@ -1,0 +1,269 @@
+---
+title: "Analysis"
+author: "Carson Slater"
+date: "2024-01-11"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Carson Slater, FIS Training Data 
+```{r}
+library("tidymodels"); theme_set(theme_bw() + 
+                                   theme(panel.border = element_blank(), 
+                                         panel.grid.major = element_blank(),
+                                         panel.grid.minor = element_blank(), 
+                                         axis.line = element_line(colour = "black"),
+                                         text = element_text(family = "Times New Roman")))
+library('workflowsets')
+library("recipes")
+library("knitr")
+library("stargazer")
+library("printr")
+```
+
+# EDA
+### Data Prep 
+
+```{r}
+tuning_data <- read.csv(here::here("MamdaniTuningData_1-6.csv"),
+                         header = TRUE)
+
+distance <- as.vector(as.matrix(tuning_data[ ,c("tx1_distance",
+                                                  "tx2_distance",
+                                                  "tx3_distance")]))
+
+input_psd <- as.vector(as.matrix(tuning_data[ ,c("tx1_psd",
+                                                  "tx2_psd",
+                                                  "tx3_psd")]))
+
+scaled_psd <- as.vector(as.matrix(tuning_data[ ,c("tx1_scaled_psd",
+                                                   "tx2_scaled_psd",
+                                                   "tx3_scaled_psd")]))
+
+aggregate_data <- cbind.data.frame(rep(tuning_data$rad_loc_idx, 3),
+                                    distance,
+                                    input_psd,
+                                    scaled_psd)
+```
+### Plotting
+```{r, eval=FALSE}
+aggregate_data |> 
+  ggplot(aes(distance, scaled_psd)) +
+  geom_point(alpha = 0.05) +
+  labs(title = "Scaled PSD Over Distance (All Input PSD)") +
+  xlab("Distance") +
+  ylab("Scaled PSD")
+
+#svg(here::here("paper_jittered_all.svg"), width = 700, height = 500)
+aggregate_data |> 
+  ggplot(aes(distance, scaled_psd)) +
+  geom_jitter(alpha = 0.05, width = 0.5, height = 0.5) +
+  labs(title = "Scaled PSD Over Distance (Includes All Possible Input PSD)") +
+  xlab("Distance") +
+  ylab("Scaled PSD")
+#dev.off()
+
+aggregate_data |> 
+  ggplot(aes(input_psd, scaled_psd)) +
+  geom_point(alpha = 0.05) +
+  labs(title = "Scaled PSD Over Input PSD (All Input PSD)") +
+  xlab("Input PSD") +
+  ylab("Scaled PSD")
+
+aggregate_data |> 
+  ggplot(aes(scaled_psd)) +
+  geom_histogram() + 
+  facet_wrap(. ~ input_psd) +
+  labs(title = "Distribution of Scaled PSD By Input PSD") +
+  xlab("Count") +
+  ylab("Scaled PSD")
+
+```
+
+# Modeling
+
+```{r}
+aggregate_data <- aggregate_data |> mutate(distance_sq = distance**2,
+                                           distance_cb = distance**3,
+                                           input_psd_sq = input_psd**2)
+
+lm_mod <-
+  parsnip::linear_reg() |>
+  parsnip::set_engine("lm") |>
+  parsnip::set_mode("regression")
+
+mod1_data <- aggregate_data |> select(input_psd, 
+                                      distance,
+                                      distance_sq)
+
+mod2_data <- aggregate_data |> select(input_psd, 
+                                      distance, 
+                                      distance_sq, distance_cb)
+
+mod3_data <- aggregate_data |> select(input_psd, 
+                                      input_psd_sq, 
+                                      distance, 
+                                      distance_sq)
+
+(lm1 <- fit(lm_mod, 
+            scaled_psd ~ input_psd + distance + distance_sq,
+            data = aggregate_data))
+
+(lm2 <- fit(lm_mod, 
+            scaled_psd ~ input_psd + distance + distance_sq + distance_cb,
+            data = aggregate_data))
+
+(lm3 <- fit(lm_mod, 
+            scaled_psd ~ input_psd + input_psd_sq + distance + distance_sq,
+            data = aggregate_data))
+
+pred1 <- predict(lm1, new_data = mod1_data)
+pred2 <- predict(lm2, new_data = mod2_data)
+pred3 <- predict(lm3, new_data = mod3_data)
+
+pred1 <- bind_cols(pred1, scaled_psd = aggregate_data |> 
+                     select(scaled_psd))
+
+pred2 <- bind_cols(pred2, scaled_psd = aggregate_data |> 
+                     select(scaled_psd))
+
+pred3 <- bind_cols(pred3, scaled_psd = aggregate_data |> 
+                     select(scaled_psd))
+
+lm1 |> tidy(); lm2 |> tidy(); lm3 |> tidy()
+```
+
+### Model Metrics
+```{r}
+mape(pred1, truth = scaled_psd, estimate = .pred)
+mape(pred2, truth = scaled_psd, estimate = .pred)
+mape(pred3, truth = scaled_psd, estimate = .pred)
+
+# Model 2 had a MAPE of 14.2%, which beat out models 1 and 3
+
+rmse(pred1, truth = scaled_psd, estimate = .pred)
+rsq(pred1, truth = scaled_psd, estimate = .pred)
+
+rsq(pred2, truth = scaled_psd, estimate = .pred)
+rmse(pred2, truth = scaled_psd, estimate = .pred)
+
+pred1 <- pred1 |> mutate(epsilon = scaled_psd - .pred)
+
+pred1 |> ggplot(aes(epsilon)) + 
+  geom_histogram()
+
+qqnorm(pred1$epsilon)
+qqline(pred1$epsilon)
+
+pred2 <- pred2 |> mutate(epsilon = scaled_psd - .pred)
+
+pred2 |> ggplot(aes(epsilon)) + 
+  geom_histogram()
+
+qqnorm(pred2$epsilon)
+qqline(pred2$epsilon)
+```
+
+# Model Plotting
+```{r, eval=FALSE}
+plot_df <- bind_cols(.pred = pred2, 
+                     distance = aggregate_data |> 
+                       select(distance),
+                     input_psd = aggregate_data |> 
+                       select(input_psd))
+
+pdf(here::here("regression_facet_nojitter.pdf"), width = 10, height = 14)
+plot_df |>
+  ggplot(aes(distance, scaled_psd)) +
+  geom_point(alpha = 0.01) +
+  geom_line(aes(distance, .pred), color = "red") +
+  facet_wrap(. ~ input_psd, nrow = 6) +
+  labs(title = "Regression Model Fit (Faceted by All Input PSD)") +
+  xlab("Distance") +
+  ylab("Scaled PSD")
+dev.off()
+
+pdf(here::here("regression_facet_jitter.pdf"), width = 10, height = 14)
+plot_df |>
+  ggplot(aes(distance, scaled_psd)) +
+  geom_jitter(alpha = 0.01, width = 2, height = 2) +
+  geom_line(aes(distance, .pred), color = "red") +
+  facet_wrap(. ~ input_psd, nrow = 6) +
+  labs(title = "Regression Model Fit (Faceted by All Input PSD)") +
+  xlab("Distance") +
+  ylab("Scaled PSD")
+dev.off()
+
+plot_df |> filter(input_psd == -55) |> 
+  ggplot(aes(distance, scaled_psd)) +
+  geom_jitter(alpha = 0.1, width = 1, height = 1) +
+  geom_line(aes(distance, .pred), color = "red") +
+  # facet_wrap(. ~ input_psd, nrow = 6) +
+  labs(title = "Regression Model Fit (Input PSD = -55)") +
+  xlab("Distance") +
+  ylab("Scaled PSD")
+```
+
+# Tables
+```{r, echo=TRUE}
+
+aggregate_data2 <- aggregate_data |> mutate(
+  `Scaled PSD` = scaled_psd,
+  `Input PSD` = input_psd,
+  `Distance` = distance,
+  `Distance Sq.` = distance_sq,
+  `Distance Cb.` = distance_cb
+)
+
+model1 <- lm(`Scaled PSD` ~ `Input PSD` + `Distance` + distance_sq,
+             data = aggregate_data2)
+(model2 <- lm(`Scaled PSD` ~ `Input PSD` + `Distance` + `Distance Sq.` + `Distance Cb.`,
+             data = aggregate_data2))
+
+tidymodel1 <- model1 |> tidy()
+tidymodel2 <- model2 |> tidy()
+
+meticsmodel1 <- glance(model1)
+meticsmodel2 <- glance(model2)
+
+tidymodel2 |> kable()
+meticsmodel2 |> kable()
+
+# stargazer(model1, model2,
+#           title = "Regression table with stargazer",
+#           label="tab2",
+#           table.placement = "H",
+#           column.labels = c("M1", "M2"), 
+#           model.numbers = FALSE,
+#           header=FALSE)
+
+```
+
+# Bench Marking
+
+```{r}
+bnch <- bench::mark(
+  `base::lm()` = lm(`Scaled PSD` ~ `Input PSD` + `Distance` + `Distance Sq.` + `Distance Cb.`,
+             data = aggregate_data2)
+)
+
+columns <- c("Expression",
+             "Min. Runtime",
+             "Med. Runtime",
+             "Itr/Sec",
+             "Memory Allocated")
+
+bnch |> 
+  select(expression, min, 
+         median, `itr/sec`, 
+         mem_alloc) |> 
+  knitr::kable("latex",
+               digits = 3, 
+               col.names = columns) |> 
+  kableExtra::kable_styling(font_size = 10,
+                            latex_options = "HOLD_position") 
+```
+
