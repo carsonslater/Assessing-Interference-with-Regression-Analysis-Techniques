@@ -3,6 +3,8 @@
 
 [Jonathan Swindell*](https://github.com/JonathanSwindell/JonathanSwindell), [Carson Slater](https://github.com/carsonslater), Samuel Hussey, Charles Baylis, Robert J. Marks II
 
+![](/agg_interference_diagram.png)
+
 ### Overview
 
 [Paper](https://doi.org/10.1109/WMCS62019.2024.10619025)
@@ -21,6 +23,6 @@ Previously, other methods employed to model aggregate interference in Dynamic Sp
 
 After exploring some different models, we found one of the simplest, yet most accurate models was the following:
 ```math
-\hat{R}_{PSD} = \hat{\beta}_0 + \hat{\beta}_1 T_{PSD} + \hat{\beta}_2 f(D).$$
+\hat{R}_{PSD} = \hat{\beta}_0 + \hat{\beta}_1 T_{PSD} + \hat{\beta}_2 f(D).
 ```
-Where the $`R_{PSD}`$ and $`T_{PSD}`$ are the recieved and transmitted power spectral density, and $`f(D)`$ is a transformation of the distance from the transmitter to the reciever.
+Where the $`R_{PSD}`$ and $`T_{PSD}`$ are the recieved and transmitted power spectral density, and $`f(D)`$ is a transformation of the distance from the transmitter to the reciever. Using this simple, trivial yet powerful model, we were able to obtain performance metrics that are comparable to other machine learning models.
