@@ -3,7 +3,9 @@
 
 [Jonathan Swindell*](https://github.com/JonathanSwindell/JonathanSwindell), [Carson Slater](https://github.com/carsonslater), Samuel Hussey, Charles Baylis, Robert J. Marks II
 
+<center>
 ![](/agg_interference_diagram.png)
+</center>
 
 ### Overview
 
